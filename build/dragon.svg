@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
+    </linearGradient>
+    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="480" fill="url(#bgGrad)"/>
+  <circle cx="512" cy="512" r="440" fill="none" stroke="#334155" stroke-width="8"/>
+
+  <!-- Dragon wing (back/left) -->
+  <path d="M280 320
+           C200 280, 160 340, 180 420
+           L220 520
+           C180 560, 160 620, 200 680
+           L260 600
+           C240 640, 260 700, 320 720
+           L340 620
+           C340 680, 380 720, 440 700
+           L380 580
+           L340 480
+           Z"
+        fill="url(#wingGrad)"
+        opacity="0.9"/>
+
+  <!-- Dragon body -->
+  <ellipse cx="520" cy="560" rx="180" ry="140" fill="url(#bodyGrad)"/>
+
+  <!-- Dragon tail -->
+  <path d="M680 620
+           Q780 640, 840 580
+           Q880 540, 860 480
+           Q840 520, 800 540
+           Q760 560, 700 560
+           Z"
+        fill="url(#bodyGrad)"/>
+
+  <!-- Tail spikes -->
+  <path d="M800 540 L830 500 L810 540 M760 560 L790 530 L770 560 M720 570 L750 550 L730 575"
+        stroke="#ef4444" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+  <!-- Dragon wing (front/right) -->
+  <path d="M580 360
+           C680 300, 760 320, 800 380
+           L780 480
+           C820 500, 860 540, 840 600
+           L760 540
+           C800 580, 780 640, 720 660
+           L680 560
+           C700 600, 660 640, 600 620
+           L600 520
+           L580 420
+           Z"
+        fill="url(#wingGrad)"/>
+
+  <!-- Dragon neck and head -->
+  <path d="M420 480
+           Q380 420, 360 360
+           Q340 300, 380 260
+           Q420 220, 480 240
+           Q520 260, 540 320
+           Q560 380, 520 440
+           Q500 480, 460 500
+           Z"
+        fill="url(#bodyGrad)"/>
+
+  <!-- Dragon snout -->
+  <path d="M380 260
+           Q340 240, 300 260
+           Q280 280, 300 310
+           Q340 340, 380 320
+           Z"
+        fill="url(#bodyGrad)"/>
+
+  <!-- Dragon eye -->
+  <ellipse cx="440" cy="300" rx="28" ry="32" fill="#fef3c7"/>
+  <ellipse cx="445" cy="305" rx="14" ry="18" fill="#0f172a"/>
+  <circle cx="438" cy="295" r="6" fill="#fff"/>
+
+  <!-- Dragon nostril -->
+  <ellipse cx="310" cy="285" rx="8" ry="10" fill="#0f172a"/>
+
+  <!-- Dragon horns -->
+  <path d="M460 240 Q480 180, 520 160 Q500 200, 480 250" fill="#ef4444"/>
+  <path d="M420 250 Q420 190, 440 150 Q430 200, 430 260" fill="#ef4444"/>
+
+  <!-- Dragon spine ridges -->
+  <path d="M500 440 L520 400 L530 450 M530 450 L555 415 L560 465"
+        stroke="#16a34a" stroke-width="12" fill="none" stroke-linecap="round"/>
+
+  <!-- Dragon legs -->
+  <path d="M400 640 L380 720 L400 710 L420 720 L400 660" fill="url(#bodyGrad)"/>
+  <path d="M580 660 L560 740 L580 730 L600 740 L580 680" fill="url(#bodyGrad)"/>
+
+  <!-- Claws -->
+  <path d="M380 720 L365 750 M400 710 L400 745 M420 720 L435 750"
+        stroke="#ef4444" stroke-width="8" stroke-linecap="round"/>
+  <path d="M560 740 L545 770 M580 730 L580 765 M600 740 L615 770"
+        stroke="#ef4444" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Flame breath accent -->
+  <path d="M280 280 Q240 290, 220 320 Q250 300, 270 310"
+        fill="#f97316" opacity="0.8"/>
+  <path d="M260 300 Q220 320, 200 360 Q240 340, 260 340"
+        fill="#ef4444" opacity="0.6"/>
+</svg>

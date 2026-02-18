@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>S3 Explorer</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15.0</string>
+
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Abhi. All rights reserved.</string>
+
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+    </array>
+
+    <!-- Privacy descriptions required by Apple -->
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>S3 Browser Downloader needs access to your Desktop folder to save downloaded files.</string>
+
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>S3 Browser Downloader needs access to your Documents folder to save downloaded files.</string>
+
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>S3 Browser Downloader needs access to your Downloads folder to save downloaded files.</string>
+
+    <key>NSNetworkVolumesUsageDescription</key>
+    <string>S3 Browser Downloader needs access to network volumes to upload and download files.</string>
+
+    <key>NSRemovableVolumesUsageDescription</key>
+    <string>S3 Browser Downloader needs access to removable volumes to upload and download files.</string>
+</dict>
+</plist>

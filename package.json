@@ -1,0 +1,133 @@
+{
+  "name": "s3-browser-downloader",
+  "version": "1.0.0",
+  "description": "Browse, preview and download files from Amazon S3 buckets with an intuitive native macOS interface.",
+  "author": {
+    "name": "Abhi",
+    "email": "abhishek.chavan16@gmail.com"
+  },
+  "license": "MIT",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-vite build && electron-builder --mac --config",
+    "package:mas": "electron-vite build && electron-builder --mac mas --universal --config",
+    "package:mas-dev": "electron-vite build && electron-builder --mac mas-dev --config",
+    "postinstall": "electron-builder install-app-deps",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/credential-providers": "^3.700.0",
+    "@aws-sdk/lib-storage": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "@radix-ui/react-context-menu": "^2.2.4",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-scroll-area": "^1.2.2",
+    "@radix-ui/react-separator": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-toast": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.1.6",
+    "@tanstack/react-virtual": "^3.11.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron-store": "^8.2.0",
+    "ini": "^5.0.0",
+    "lucide-react": "^0.468.0",
+    "mime-types": "^2.1.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0",
+    "uuid": "^11.0.3",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@types/ini": "^4.1.1",
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  },
+  "build": {
+    "appId": "com.bezudar.s3downloader.app",
+    "productName": "S3 Explorer",
+    "copyright": "Copyright © 2026 Abhi",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "!**/*.map",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "artifactName": "${productName}-${version}.${ext}",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": "build/Info.plist",
+      "gatekeeperAssess": false,
+      "darkModeSupport": true,
+      "minimumSystemVersion": "10.15.0"
+    },
+    "mas": {
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
+      "hardenedRuntime": false,
+      "category": "public.app-category.developer-tools",
+      "artifactName": "${productName}-${version}-mas.${ext}",
+      "type": "distribution",
+      "provisioningProfile": "build/embedded.provisionprofile"
+    },
+    "masDev": {
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
+      "hardenedRuntime": false,
+      "identity": null,
+      "type": "development"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}.${ext}",
+      "writeUpdateInfo": false
+    },
+    "extraMetadata": {
+      "LSMinimumSystemVersion": "10.15.0"
+    }
+  }
+}
