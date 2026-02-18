@@ -4,3 +4,9 @@ dist/
 .DS_Store
 *.log
 .claude/
+*.provisionprofile
+*.mobileprovision
+*.p12
+*.cer
+*.pem
+*.key
