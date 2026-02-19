@@ -7,6 +7,7 @@ import type {
   ConnectionState
 } from '@shared/types'
 import { useBrowserStore } from './browser.store'
+import { useTabStore } from './tab.store'
 
 interface ConnectionStore {
   // State
@@ -62,16 +63,7 @@ export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
       const result = await window.api.connectProfile(name, region)
       if (result.success) {
         const profile = get().profiles.find((p) => p.name === name)
-        useBrowserStore.getState().clearSelection()
-        useBrowserStore.setState({
-          currentBucket: null,
-          currentPrefix: '',
-          objects: [],
-          loading: false,
-          continuationToken: undefined,
-          isTruncated: false,
-          error: null
-        })
+        useTabStore.getState().clearAllTabBrowserStates()
         set({
           connected: true,
           connecting: false,
@@ -105,16 +97,7 @@ export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
     try {
       const result = await window.api.connectManual(creds)
       if (result.success) {
-        useBrowserStore.getState().clearSelection()
-        useBrowserStore.setState({
-          currentBucket: null,
-          currentPrefix: '',
-          objects: [],
-          loading: false,
-          continuationToken: undefined,
-          isTruncated: false,
-          error: null
-        })
+        useTabStore.getState().clearAllTabBrowserStates()
         set({
           connected: true,
           connecting: false,
@@ -173,16 +156,7 @@ export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
       const savedCred = get().savedCredentials.find((c) => c.id === id)
       const result = await window.api.connectSavedCredential(id)
       if (result.success) {
-        useBrowserStore.getState().clearSelection()
-        useBrowserStore.setState({
-          currentBucket: null,
-          currentPrefix: '',
-          objects: [],
-          loading: false,
-          continuationToken: undefined,
-          isTruncated: false,
-          error: null
-        })
+        useTabStore.getState().clearAllTabBrowserStates()
 
         // If default bucket is set, suppress listBucketsError since we'll navigate directly
         const suppressListBucketsError = !!(savedCred?.defaultBucket)

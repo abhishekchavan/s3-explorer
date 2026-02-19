@@ -44,8 +44,8 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps):
     }
   }, [open, loadProfiles, loadSavedCredentials])
 
-  const handleProfileConnect = async (name: string): Promise<void> => {
-    await connectProfile(name)
+  const handleProfileConnect = async (name: string, region?: string): Promise<void> => {
+    await connectProfile(name, region)
     if (useConnectionStore.getState().connected) {
       loadBookmarks()
       onOpenChange(false)
@@ -132,9 +132,10 @@ function ProfileList({
 }: {
   profiles: import('@shared/types').AwsProfile[]
   connecting: boolean
-  onConnect: (name: string) => void
+  onConnect: (name: string, region?: string) => void
 }): JSX.Element {
   const [selectedProfile, setSelectedProfile] = useState<string>('')
+  const [autoDetectRegion, setAutoDetectRegion] = useState(true)
 
   if (profiles.length === 0) {
     return (
@@ -144,9 +145,17 @@ function ProfileList({
     )
   }
 
+  const selectedProfileData = profiles.find((p) => p.name === selectedProfile)
+
+  const handleConnect = (): void => {
+    // Pass empty string to auto-detect, or profile's region if not auto-detecting
+    const region = autoDetectRegion ? '' : selectedProfileData?.region
+    onConnect(selectedProfile, region)
+  }
+
   return (
     <div className="space-y-3">
-      <ScrollArea className="h-48">
+      <ScrollArea className="h-40">
         <div className="space-y-1">
           {profiles.map((profile) => (
             <button
@@ -156,7 +165,7 @@ function ProfileList({
                 selectedProfile === profile.name && 'bg-accent ring-1 ring-primary'
               )}
               onClick={() => setSelectedProfile(profile.name)}
-              onDoubleClick={() => onConnect(profile.name)}
+              onDoubleClick={handleConnect}
             >
               <div className="flex-1 min-w-0">
                 <div className="font-medium">{profile.name}</div>
@@ -171,10 +180,22 @@ function ProfileList({
           ))}
         </div>
       </ScrollArea>
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="auto-detect-region"
+          checked={autoDetectRegion}
+          onChange={(e) => setAutoDetectRegion(e.target.checked)}
+          className="rounded"
+        />
+        <label htmlFor="auto-detect-region" className="text-xs text-muted-foreground">
+          Auto-detect region per bucket (recommended)
+        </label>
+      </div>
       <Button
         className="w-full"
         disabled={!selectedProfile || connecting}
-        onClick={() => onConnect(selectedProfile)}
+        onClick={handleConnect}
       >
         {connecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
         Connect
@@ -198,7 +219,7 @@ function ManualCredentialForm({
   const [accessKeyId, setAccessKeyId] = useState('')
   const [secretAccessKey, setSecretAccessKey] = useState('')
   const [sessionToken, setSessionToken] = useState('')
-  const [region, setRegion] = useState('us-east-1')
+  const [region, setRegion] = useState('')
   const [defaultBucket, setDefaultBucket] = useState('')
   const [defaultPrefix, setDefaultPrefix] = useState('')
   const [saveCredentials, setSaveCredentials] = useState(false)
@@ -230,7 +251,7 @@ function ManualCredentialForm({
       setSelectedSavedId(null)
       setLabel('')
       setAccessKeyId('')
-      setRegion('us-east-1')
+      setRegion('')
     }
   }
 
@@ -339,14 +360,14 @@ function ManualCredentialForm({
         />
       </div>
       <div>
-        <label className="text-xs font-medium text-muted-foreground">Region *</label>
+        <label className="text-xs font-medium text-muted-foreground">Region (optional)</label>
         <Input
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          placeholder="us-east-1"
-          required
+          placeholder="Leave empty to auto-detect"
           className="mt-1"
         />
+        <p className="text-[10px] text-muted-foreground mt-1">Leave empty to auto-detect region per bucket</p>
       </div>
       <div className="flex items-center gap-2">
         <input

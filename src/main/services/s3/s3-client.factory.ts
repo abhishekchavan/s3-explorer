@@ -56,6 +56,7 @@ export async function getBucketRegion(bucket: string): Promise<string> {
   } catch (error: unknown) {
     const err = error as {
       $metadata?: { httpStatusCode?: number };
+      $response?: { headers?: Record<string, string> };
       BucketRegion?: string;
       name?: string;
       Code?: string;
@@ -65,6 +66,13 @@ export async function getBucketRegion(bucket: string): Promise<string> {
     if (err.BucketRegion) {
       bucketRegionCache.set(bucket, err.BucketRegion)
       return err.BucketRegion
+    }
+
+    // Check x-amz-bucket-region header (AWS SDK v3 includes this in error responses)
+    const headerRegion = err.$response?.headers?.['x-amz-bucket-region']
+    if (headerRegion) {
+      bucketRegionCache.set(bucket, headerRegion)
+      return headerRegion
     }
 
     // For AccessDenied, the region we used is correct
@@ -135,4 +143,5 @@ export function clearClients(): void {
     client.destroy()
   }
   clientCache.clear()
+  bucketRegionCache.clear()
 }

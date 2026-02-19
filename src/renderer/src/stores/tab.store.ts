@@ -63,6 +63,9 @@ interface TabStore {
   clearSelection: () => void
   selectRange: (key: string) => void
 
+  // Reset
+  clearAllTabBrowserStates: () => void
+
   // Persistence
   initFromStorage: () => void
 }
@@ -512,6 +515,17 @@ export const useTabStore = create<TabStore>()((set, get) => {
         next.add(k)
       }
       updateTabBrowserState(activeTabId, { selectedKeys: next })
+    },
+
+    clearAllTabBrowserStates: () => {
+      set((state) => ({
+        tabs: state.tabs.map((tab) => ({
+          ...tab,
+          title: 'New Tab',
+          browserState: createDefaultBrowserState()
+        }))
+      }))
+      persistTabs()
     },
 
     initFromStorage: () => {
