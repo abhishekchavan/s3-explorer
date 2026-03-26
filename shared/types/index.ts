@@ -1,4 +1,5 @@
 export * from './s3.types'
+export * from './sftp.types'
 export * from './transfer.types'
 export * from './connection.types'
 export * from './bookmark.types'

@@ -21,7 +21,9 @@ import type {
   TransferProgress,
   TransferStatusUpdate,
   Bookmark,
-  FavoriteBucket
+  FavoriteBucket,
+  SftpCredential,
+  SftpListResponse
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -93,6 +95,23 @@ export interface ElectronAPI {
   getPlatform(): Promise<string>
   isMasBuild(): Promise<boolean>
   getPathForFile(file: File): string
+
+  // SFTP Credentials
+  listSftpCredentials(): Promise<{ success: boolean; data?: SftpCredential[]; error?: string }>
+  saveSftpCredential(credential: Omit<SftpCredential, 'id' | 'createdAt'>): Promise<{ success: boolean; data?: SftpCredential; error?: string }>
+  deleteSftpCredential(id: string): Promise<{ success: boolean; error?: string }>
+
+  // SFTP Connection
+  sftpConnect(credentialId: string): Promise<{ success: boolean; data?: { homeDir: string; label: string }; error?: string }>
+  sftpDisconnect(): Promise<{ success: boolean; error?: string }>
+
+  // SFTP Operations
+  sftpListDirectory(remotePath: string): Promise<{ success: boolean; data?: SftpListResponse; error?: string }>
+  sftpDownload(remotePath: string, localDir: string): Promise<{ success: boolean; data?: string; error?: string }>
+  sftpUpload(localPaths: string[], remotePath: string): Promise<{ success: boolean; error?: string }>
+  sftpDelete(remotePaths: string[]): Promise<{ success: boolean; error?: string }>
+  sftpCreateDirectory(remotePath: string): Promise<{ success: boolean; error?: string }>
+  sftpRename(oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }>
 }
 
 const api: ElectronAPI = {
@@ -179,7 +198,24 @@ const api: ElectronAPI = {
   // App
   getPlatform: () => ipcRenderer.invoke(IPC.APP_GET_PLATFORM),
   isMasBuild: () => Promise.resolve(!!process.mas),
-  getPathForFile: (file: File) => webUtils.getPathForFile(file)
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
+
+  // SFTP Credentials
+  listSftpCredentials: () => ipcRenderer.invoke(IPC.SFTP_LIST_CREDENTIALS),
+  saveSftpCredential: (credential) => ipcRenderer.invoke(IPC.SFTP_SAVE_CREDENTIAL, credential),
+  deleteSftpCredential: (id) => ipcRenderer.invoke(IPC.SFTP_DELETE_CREDENTIAL, id),
+
+  // SFTP Connection
+  sftpConnect: (credentialId) => ipcRenderer.invoke(IPC.SFTP_CONNECT, credentialId),
+  sftpDisconnect: () => ipcRenderer.invoke(IPC.SFTP_DISCONNECT),
+
+  // SFTP Operations
+  sftpListDirectory: (remotePath) => ipcRenderer.invoke(IPC.SFTP_LIST_DIRECTORY, remotePath),
+  sftpDownload: (remotePath, localDir) => ipcRenderer.invoke(IPC.SFTP_DOWNLOAD, remotePath, localDir),
+  sftpUpload: (localPaths, remotePath) => ipcRenderer.invoke(IPC.SFTP_UPLOAD, localPaths, remotePath),
+  sftpDelete: (remotePaths) => ipcRenderer.invoke(IPC.SFTP_DELETE, remotePaths),
+  sftpCreateDirectory: (remotePath) => ipcRenderer.invoke(IPC.SFTP_CREATE_DIRECTORY, remotePath),
+  sftpRename: (oldPath, newPath) => ipcRenderer.invoke(IPC.SFTP_RENAME, oldPath, newPath)
 }
 
 contextBridge.exposeInMainWorld('api', api)

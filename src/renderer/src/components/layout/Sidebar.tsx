@@ -13,7 +13,8 @@ import {
   AlertCircle,
   KeyRound,
   Loader2,
-  FolderOpen
+  FolderOpen,
+  Terminal
 } from 'lucide-react'
 import { ScrollArea } from '../ui/scroll-area'
 import {
@@ -36,6 +37,7 @@ import { useConnectionStore } from '../../stores/connection.store'
 import { useBrowserStore } from '../../stores/browser.store'
 import { useBookmarkStore } from '../../stores/bookmark.store'
 import { useFavoriteStore } from '../../stores/favorite.store'
+import { useTabStore } from '../../stores/tab.store'
 import { cn } from '../../lib/utils'
 import type { S3Bucket, Bookmark } from '@shared/types'
 
@@ -93,11 +95,15 @@ export function Sidebar(): JSX.Element {
     listBucketsError,
     addManualBucket,
     savedCredentials,
+    sftpCredentials,
     loadSavedCredentials,
+    loadSftpCredentials,
     connectSavedCredential,
+    connectSftp,
     connecting,
     connectionInfo
   } = useConnectionStore()
+  const { navigateToSftpDirectory } = useTabStore()
   const { bookmarks, newlyAddedId, remove: removeBookmark, rename: renameBookmark } = useBookmarkStore()
   const { currentBucket, navigateToBucket, navigateToPrefix, currentPrefix } = useBrowserStore()
   const { favorites, load: loadFavorites, toggle: toggleFavorite } = useFavoriteStore()
@@ -116,6 +122,7 @@ export function Sidebar(): JSX.Element {
   // Load saved credentials on mount
   useEffect(() => {
     loadSavedCredentials()
+    loadSftpCredentials()
   }, [])
 
   const handleConnectSaved = async (id: string): Promise<void> => {
@@ -123,6 +130,14 @@ export function Sidebar(): JSX.Element {
     await connectSavedCredential(id)
     setConnectingCredId(null)
   }
+
+  const handleConnectSftp = async (id: string): Promise<void> => {
+    setConnectingCredId(id)
+    await connectSftp(id)
+    setConnectingCredId(null)
+  }
+
+  const isSftpConnected = connectionInfo?.type === 'sftp'
 
   const handleAddBucket = (): void => {
     if (newBucketName.trim()) {
@@ -190,9 +205,17 @@ export function Sidebar(): JSX.Element {
     <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground border-r border-border/50 shadow-sm">
       {/* Branded header */}
       <div className="px-3 py-2.5 flex items-center gap-2 border-b border-border">
-        <Database className="h-4 w-4 text-primary shrink-0" />
+        {isSftpConnected ? (
+          <Terminal className="h-4 w-4 text-primary shrink-0" />
+        ) : (
+          <Database className="h-4 w-4 text-primary shrink-0" />
+        )}
         <span className="text-sm font-semibold">
-          S3 <span className="text-primary">Browser</span>
+          {isSftpConnected ? (
+            <>SFTP <span className="text-primary">Explorer</span></>
+          ) : (
+            <>S3 <span className="text-primary">Browser</span></>
+          )}
         </span>
       </div>
 
@@ -222,11 +245,11 @@ export function Sidebar(): JSX.Element {
 
       <ScrollArea className="flex-1">
         {/* Saved Connections section - always visible */}
-        {savedCredentials.length > 0 && (
-          <CollapsibleSection label="Saved Connections" count={savedCredentials.length} defaultOpen={!connected}>
+        {(savedCredentials.length > 0 || sftpCredentials.length > 0) && (
+          <CollapsibleSection label="Saved Connections" count={savedCredentials.length + sftpCredentials.length} defaultOpen={!connected}>
             <div className="px-1">
               {savedCredentials.map((cred) => {
-                const isActive = connected && connectionInfo?.credentialId === cred.id
+                const isActive = connected && connectionInfo?.credentialId === cred.id && connectionInfo?.type !== 'sftp'
                 const isConnecting = connectingCredId === cred.id
                 return (
                   <button
@@ -261,11 +284,63 @@ export function Sidebar(): JSX.Element {
                   </button>
                 )
               })}
+              {sftpCredentials.map((cred) => {
+                const isActive = connected && connectionInfo?.credentialId === cred.id && connectionInfo?.type === 'sftp'
+                const isConnecting = connectingCredId === cred.id
+                return (
+                  <button
+                    key={cred.id}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-md hover:bg-accent transition-colors text-left group',
+                      isActive && 'bg-primary/15 text-primary border-l-2 border-l-primary font-medium'
+                    )}
+                    onClick={() => handleConnectSftp(cred.id)}
+                    disabled={isConnecting || connecting}
+                    title={`${cred.username}@${cred.host}:${cred.port}`}
+                  >
+                    {isConnecting ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+                    ) : (
+                      <Terminal
+                        className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate">{cred.label}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {cred.username}@{cred.host}:{cred.port}
+                      </div>
+                    </div>
+                    {isActive && (
+                      <span className="text-[10px] text-primary shrink-0">Connected</span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </CollapsibleSection>
         )}
 
-        {connected ? (
+        {connected && isSftpConnected ? (
+          <div className="pb-2">
+            <CollapsibleSection label="SFTP Navigation" count={0} defaultOpen={true}>
+              <div className="px-3 py-2 space-y-1">
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{connectionInfo?.label}</span>
+                </div>
+                {connectionInfo?.sftpHome && (
+                  <button
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left"
+                    onClick={() => navigateToSftpDirectory(connectionInfo.sftpHome!, connectionInfo.label)}
+                  >
+                    <FolderOpen className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="truncate font-mono">{connectionInfo.sftpHome}</span>
+                  </button>
+                )}
+              </div>
+            </CollapsibleSection>
+          </div>
+        ) : connected ? (
           <div className="pb-2">
             {/* Favorites section */}
             {favoriteBuckets.length > 0 && (

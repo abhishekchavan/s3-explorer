@@ -26,10 +26,11 @@ export interface SavedCredential {
 }
 
 export interface ConnectionState {
-  type: 'profile' | 'manual'
+  type: 'profile' | 'manual' | 'sftp'
   profileName?: string
   credentialId?: string
   label: string
   region: string
   connected: boolean
+  sftpHome?: string
 }

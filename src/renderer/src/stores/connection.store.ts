@@ -4,7 +4,8 @@ import type {
   ManualCredentials,
   SavedCredential,
   S3Bucket,
-  ConnectionState
+  ConnectionState,
+  SftpCredential
 } from '@shared/types'
 import { useBrowserStore } from './browser.store'
 import { useTabStore } from './tab.store'
@@ -16,6 +17,7 @@ interface ConnectionStore {
   connectionInfo: ConnectionState | null
   profiles: AwsProfile[]
   savedCredentials: SavedCredential[]
+  sftpCredentials: SftpCredential[]
   buckets: S3Bucket[]
   error: string | null
   listBucketsError: string | null
@@ -33,6 +35,12 @@ interface ConnectionStore {
   setPresignedUrlSupported: (supported: boolean) => void
   addManualBucket: (bucketName: string, region?: string, startingPrefix?: string) => void
   removeManualBucket: (bucketName: string) => void
+
+  // SFTP
+  loadSftpCredentials: () => Promise<void>
+  connectSftp: (credentialId: string) => Promise<void>
+  saveSftpCredential: (credential: Omit<SftpCredential, 'id' | 'createdAt'>) => Promise<void>
+  deleteSftpCredential: (id: string) => Promise<void>
 }
 
 export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
@@ -42,6 +50,7 @@ export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
   connectionInfo: null,
   profiles: [],
   savedCredentials: [],
+  sftpCredentials: [],
   buckets: [],
   error: null,
   listBucketsError: null,
@@ -127,9 +136,15 @@ export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
   },
 
   disconnect: async () => {
+    const { connectionInfo } = get()
     try {
-      await window.api.disconnect()
+      if (connectionInfo?.type === 'sftp') {
+        await window.api.sftpDisconnect()
+      } else {
+        await window.api.disconnect()
+      }
     } finally {
+      useTabStore.getState().clearAllTabBrowserStates()
       set({
         connected: false,
         connecting: false,
@@ -239,5 +254,66 @@ export const useConnectionStore = create<ConnectionStore>()((set, get) => ({
   removeManualBucket: (bucketName: string) => {
     const { buckets } = get()
     set({ buckets: buckets.filter((b) => b.name !== bucketName) })
+  },
+
+  loadSftpCredentials: async () => {
+    const result = await window.api.listSftpCredentials()
+    if (result.success && result.data) {
+      set({ sftpCredentials: result.data })
+    } else {
+      set({ error: result.error ?? 'Failed to load SFTP credentials' })
+    }
+  },
+
+  connectSftp: async (credentialId: string) => {
+    set({ connecting: true, error: null })
+    try {
+      const result = await window.api.sftpConnect(credentialId)
+      if (result.success && result.data) {
+        const { homeDir, label } = result.data
+        useTabStore.getState().clearAllTabBrowserStates()
+        set({
+          connected: true,
+          connecting: false,
+          buckets: [],
+          connectionInfo: {
+            type: 'sftp',
+            credentialId,
+            label,
+            region: '',
+            connected: true,
+            sftpHome: homeDir
+          }
+        })
+        setTimeout(() => {
+          useTabStore.getState().navigateToSftpDirectory(homeDir, label)
+        }, 50)
+      } else {
+        set({ connecting: false, error: result.error ?? 'Failed to connect via SFTP' })
+      }
+    } catch (err) {
+      set({
+        connecting: false,
+        error: err instanceof Error ? err.message : 'Failed to connect via SFTP'
+      })
+    }
+  },
+
+  saveSftpCredential: async (credential) => {
+    const result = await window.api.saveSftpCredential(credential)
+    if (result.success) {
+      await get().loadSftpCredentials()
+    } else {
+      set({ error: result.error ?? 'Failed to save SFTP credential' })
+    }
+  },
+
+  deleteSftpCredential: async (id: string) => {
+    const result = await window.api.deleteSftpCredential(id)
+    if (result.success) {
+      await get().loadSftpCredentials()
+    } else {
+      set({ error: result.error ?? 'Failed to delete SFTP credential' })
+    }
   }
 }))

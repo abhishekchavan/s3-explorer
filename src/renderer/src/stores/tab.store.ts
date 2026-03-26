@@ -1,11 +1,11 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { S3Object } from '@shared/types'
 
 export type SortField = 'name' | 'size' | 'lastModified'
 export type SortDirection = 'asc' | 'desc'
 
 export interface TabBrowserState {
+  protocol: 's3' | 'sftp'
   currentBucket: string | null
   currentPrefix: string
   objects: S3Object[]
@@ -50,6 +50,7 @@ interface TabStore {
 
   // Navigation actions
   navigateToBucket: (name: string, startingPrefix?: string) => Promise<void>
+  navigateToSftpDirectory: (path: string, label?: string) => Promise<void>
   navigateToPrefix: (prefix: string) => Promise<void>
   navigateUp: () => Promise<void>
   loadMore: () => Promise<void>
@@ -83,6 +84,7 @@ function getTabTitle(bucket: string | null, prefix: string): string {
 
 function createDefaultBrowserState(): TabBrowserState {
   return {
+    protocol: 's3',
     currentBucket: null,
     currentPrefix: '',
     objects: [],
@@ -94,6 +96,13 @@ function createDefaultBrowserState(): TabBrowserState {
     selectedKeys: new Set<string>(),
     error: null
   }
+}
+
+function sftpParentPath(path: string): string {
+  const trimmed = path.endsWith('/') && path !== '/' ? path.slice(0, -1) : path
+  const lastSlash = trimmed.lastIndexOf('/')
+  if (lastSlash <= 0) return '/'
+  return trimmed.substring(0, lastSlash) || '/'
 }
 
 function sortObjects(objects: S3Object[], field: SortField, direction: SortDirection): S3Object[] {
@@ -306,6 +315,60 @@ export const useTabStore = create<TabStore>()((set, get) => {
       persistTabs()
     },
 
+    navigateToSftpDirectory: async (path: string, label?: string) => {
+      const { activeTabId, updateTabTitle } = get()
+      if (!activeTabId) return
+
+      const { useUiStore } = await import('./ui.store')
+      useUiStore.setState({ previewObject: null })
+
+      const displayLabel = label ?? path
+      updateTabBrowserState(activeTabId, {
+        protocol: 'sftp',
+        currentBucket: displayLabel,
+        currentPrefix: path,
+        objects: [],
+        loading: true,
+        continuationToken: undefined,
+        isTruncated: false,
+        selectedKeys: new Set<string>(),
+        error: null
+      })
+      updateTabTitle(activeTabId, displayLabel, path)
+
+      try {
+        const result = await window.api.sftpListDirectory(path)
+        const newBrowserState = get().getActiveTabBrowserState()
+        if (result.success && result.data && newBrowserState) {
+          const mapped = result.data.entries.map((e) => ({
+            key: e.key,
+            name: e.name,
+            size: e.size,
+            lastModified: e.lastModified,
+            isFolder: e.isFolder,
+            storageClass: undefined,
+            etag: undefined
+          }))
+          updateTabBrowserState(activeTabId, {
+            objects: mapped,
+            loading: false
+          })
+        } else {
+          updateTabBrowserState(activeTabId, {
+            loading: false,
+            error: result.error ?? 'Failed to list directory'
+          })
+        }
+      } catch (err) {
+        updateTabBrowserState(activeTabId, {
+          loading: false,
+          error: err instanceof Error ? err.message : 'Failed to list directory'
+        })
+      }
+
+      persistTabs()
+    },
+
     navigateToPrefix: async (prefix: string) => {
       const { activeTabId, updateTabTitle, getActiveTabBrowserState } = get()
       if (!activeTabId) return
@@ -326,6 +389,37 @@ export const useTabStore = create<TabStore>()((set, get) => {
       })
 
       updateTabTitle(activeTabId, currentBucket, prefix)
+
+      if (browserState.protocol === 'sftp') {
+        try {
+          const result = await window.api.sftpListDirectory(prefix)
+          const newBrowserState = get().getActiveTabBrowserState()
+          if (result.success && result.data && newBrowserState) {
+            const mapped = result.data.entries.map((e) => ({
+              key: e.key,
+              name: e.name,
+              size: e.size,
+              lastModified: e.lastModified,
+              isFolder: e.isFolder,
+              storageClass: undefined,
+              etag: undefined
+            }))
+            updateTabBrowserState(activeTabId, { objects: mapped, loading: false })
+          } else {
+            updateTabBrowserState(activeTabId, {
+              loading: false,
+              error: result.error ?? 'Failed to list directory'
+            })
+          }
+        } catch (err) {
+          updateTabBrowserState(activeTabId, {
+            loading: false,
+            error: err instanceof Error ? err.message : 'Failed to list directory'
+          })
+        }
+        persistTabs()
+        return
+      }
 
       try {
         const result = await window.api.listObjects({
@@ -360,7 +454,17 @@ export const useTabStore = create<TabStore>()((set, get) => {
     navigateUp: async () => {
       const { getActiveTabBrowserState, navigateToPrefix } = get()
       const browserState = getActiveTabBrowserState()
-      if (!browserState?.currentPrefix) return
+      if (!browserState) return
+
+      if (browserState.protocol === 'sftp') {
+        const parent = sftpParentPath(browserState.currentPrefix)
+        if (parent !== browserState.currentPrefix) {
+          await navigateToPrefix(parent)
+        }
+        return
+      }
+
+      if (!browserState.currentPrefix) return
 
       const trimmed = browserState.currentPrefix.endsWith('/')
         ? browserState.currentPrefix.slice(0, -1)
@@ -414,6 +518,11 @@ export const useTabStore = create<TabStore>()((set, get) => {
       const { getActiveTabBrowserState, navigateToBucket, navigateToPrefix } = get()
       const browserState = getActiveTabBrowserState()
       if (!browserState?.currentBucket) return
+
+      if (browserState.protocol === 'sftp') {
+        await navigateToPrefix(browserState.currentPrefix)
+        return
+      }
 
       if (browserState.currentPrefix === '') {
         await navigateToBucket(browserState.currentBucket)
