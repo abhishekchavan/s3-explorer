@@ -64,7 +64,24 @@ export const IPC = {
   FS_SHOW_IN_FINDER: 'fs:show-in-finder',
 
   // App
-  APP_GET_PLATFORM: 'app:get-platform'
+  APP_GET_PLATFORM: 'app:get-platform',
+
+  // SFTP Credentials
+  SFTP_LIST_CREDENTIALS: 'sftp:list-credentials',
+  SFTP_SAVE_CREDENTIAL: 'sftp:save-credential',
+  SFTP_DELETE_CREDENTIAL: 'sftp:delete-credential',
+
+  // SFTP Connection
+  SFTP_CONNECT: 'sftp:connect',
+  SFTP_DISCONNECT: 'sftp:disconnect',
+
+  // SFTP Operations
+  SFTP_LIST_DIRECTORY: 'sftp:list-directory',
+  SFTP_DOWNLOAD: 'sftp:download',
+  SFTP_UPLOAD: 'sftp:upload',
+  SFTP_DELETE: 'sftp:delete',
+  SFTP_CREATE_DIRECTORY: 'sftp:create-directory',
+  SFTP_RENAME: 'sftp:rename'
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

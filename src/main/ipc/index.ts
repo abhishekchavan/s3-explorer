@@ -4,6 +4,7 @@ import { registerTransferHandlers } from './transfer.handlers'
 import { registerBookmarkHandlers } from './bookmark.handlers'
 import { registerFavoriteHandlers } from './favorite.handlers'
 import { registerFilesystemHandlers } from './filesystem.handlers'
+import { registerSftpHandlers } from './sftp.handlers'
 
 export function registerAllHandlers(): void {
   registerCredentialHandlers()
@@ -12,4 +13,5 @@ export function registerAllHandlers(): void {
   registerBookmarkHandlers()
   registerFavoriteHandlers()
   registerFilesystemHandlers()
+  registerSftpHandlers()
 }

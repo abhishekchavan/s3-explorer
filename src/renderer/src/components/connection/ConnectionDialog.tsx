@@ -11,9 +11,9 @@ import { Input } from '../ui/input'
 import { ScrollArea } from '../ui/scroll-area'
 import { useConnectionStore } from '../../stores/connection.store'
 import { useBookmarkStore } from '../../stores/bookmark.store'
-import { Loader2, User, Key, Check, AlertCircle, Trash2, FolderOpen } from 'lucide-react'
+import { Loader2, User, Key, Check, AlertCircle, Trash2, FolderOpen, Terminal } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import type { ManualCredentials } from '@shared/types'
+import type { ManualCredentials, SftpCredential } from '@shared/types'
 
 interface ConnectionDialogProps {
   open: boolean
@@ -25,12 +25,15 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps):
   const {
     profiles,
     savedCredentials,
+    sftpCredentials,
     connecting,
     error,
     loadProfiles,
     loadSavedCredentials,
     connectProfile,
-    connectManual
+    connectManual,
+    loadSftpCredentials,
+    connectSftp
   } = useConnectionStore()
   const { load: loadBookmarks } = useBookmarkStore()
 
@@ -39,10 +42,10 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps):
       void window.api.isMasBuild().then(setIsMasBuild)
       loadProfiles()
       loadSavedCredentials()
-      // Clear any previous error when dialog opens
+      loadSftpCredentials()
       useConnectionStore.setState({ error: null })
     }
-  }, [open, loadProfiles, loadSavedCredentials])
+  }, [open, loadProfiles, loadSavedCredentials, loadSftpCredentials])
 
   const handleProfileConnect = async (name: string, region?: string): Promise<void> => {
     await connectProfile(name, region)
@@ -68,16 +71,25 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps):
     }
   }
 
+  const handleSftpConnect = async (credentialId: string): Promise<void> => {
+    await connectSftp(credentialId)
+    if (useConnectionStore.getState().connected) {
+      onOpenChange(false)
+    }
+  }
+
+  const tabCols = isMasBuild ? 'grid-cols-2' : 'grid-cols-3'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Connect to AWS</DialogTitle>
+          <DialogTitle>New Connection</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6 pb-1">
           <Tabs defaultValue={isMasBuild ? 'manual' : 'profiles'} className="mt-2">
-            <TabsList className={cn('grid w-full', isMasBuild ? 'grid-cols-1' : 'grid-cols-2')}>
+            <TabsList className={cn('grid w-full', tabCols)}>
               {!isMasBuild && (
                 <TabsTrigger value="profiles">
                   <User className="h-4 w-4 mr-2" />
@@ -87,6 +99,10 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps):
               <TabsTrigger value="manual">
                 <Key className="h-4 w-4 mr-2" />
                 Manual Entry
+              </TabsTrigger>
+              <TabsTrigger value="sftp">
+                <Terminal className="h-4 w-4 mr-2" />
+                SFTP
               </TabsTrigger>
             </TabsList>
 
@@ -106,6 +122,14 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps):
                 connecting={connecting}
                 onConnect={handleManualConnect}
                 onConnectSaved={handleSavedCredentialConnect}
+              />
+            </TabsContent>
+
+            <TabsContent value="sftp" className="mt-4">
+              <SftpCredentialForm
+                sftpCredentials={sftpCredentials}
+                connecting={connecting}
+                onConnect={handleSftpConnect}
               />
             </TabsContent>
           </Tabs>
@@ -407,6 +431,194 @@ function ManualCredentialForm({
       <Button type="submit" className="w-full" disabled={!accessKeyId || !secretAccessKey || connecting}>
         {connecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
         Connect
+      </Button>
+    </form>
+  )
+}
+
+function SftpCredentialForm({
+  sftpCredentials,
+  connecting,
+  onConnect
+}: {
+  sftpCredentials: SftpCredential[]
+  connecting: boolean
+  onConnect: (credentialId: string) => void
+}): JSX.Element {
+  const [label, setLabel] = useState('')
+  const [host, setHost] = useState('')
+  const [port, setPort] = useState('22')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [privateKeyPath, setPrivateKeyPath] = useState('')
+  const [saveCredential, setSaveCredential] = useState(true)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const { deleteSftpCredential } = useConnectionStore()
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault()
+    const cred: Omit<SftpCredential, 'id' | 'createdAt'> = {
+      label: label || `${username}@${host}`,
+      host,
+      port: parseInt(port, 10) || 22,
+      username,
+      password: password || undefined,
+      privateKeyPath: privateKeyPath || undefined
+    }
+    if (saveCredential) {
+      const result = await window.api.saveSftpCredential(cred)
+      if (result.success && result.data) {
+        await useConnectionStore.getState().loadSftpCredentials()
+        onConnect(result.data.id)
+      }
+    } else {
+      // Save temporarily just to get an ID, then connect and it will be cleaned up on disconnect
+      const result = await window.api.saveSftpCredential(cred)
+      if (result.success && result.data) {
+        const id = result.data.id
+        await useConnectionStore.getState().loadSftpCredentials()
+        onConnect(id)
+        // Remove from saved list since user didn't want to save
+        setTimeout(() => window.api.deleteSftpCredential(id), 500)
+      }
+    }
+  }
+
+  const handleDeleteSaved = async (e: React.MouseEvent, id: string): Promise<void> => {
+    e.stopPropagation()
+    await deleteSftpCredential(id)
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {sftpCredentials.length > 0 && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Saved Servers (double-click to connect)</label>
+          <ScrollArea className="h-24 mt-1.5">
+            <div className="space-y-1">
+              {sftpCredentials.map((sc) => (
+                <div
+                  key={sc.id}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors cursor-pointer group',
+                    selectedId === sc.id && 'bg-accent ring-1 ring-primary'
+                  )}
+                  onClick={() => setSelectedId(sc.id)}
+                  onDoubleClick={() => onConnect(sc.id)}
+                >
+                  <Terminal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{sc.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {sc.username}@{sc.host}:{sc.port}
+                    </div>
+                  </div>
+                  {selectedId === sc.id && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  <button
+                    type="button"
+                    className="p-1 rounded-sm opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-opacity"
+                    onClick={(e) => handleDeleteSaved(e, sc.id)}
+                    title="Delete saved server"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          {selectedId && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mt-2"
+              disabled={connecting}
+              onClick={() => onConnect(selectedId)}
+            >
+              {connecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Connect to Saved Server
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Label (optional)</label>
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="My Server"
+          className="mt-1"
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-muted-foreground">Host *</label>
+          <Input
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+            placeholder="example.com"
+            required
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Port</label>
+          <Input
+            value={port}
+            onChange={(e) => setPort(e.target.value)}
+            placeholder="22"
+            className="mt-1"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Username *</label>
+        <Input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="user"
+          required
+          className="mt-1"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Password</label>
+        <Input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Leave empty to use private key"
+          className="mt-1"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Private Key Path</label>
+        <Input
+          value={privateKeyPath}
+          onChange={(e) => setPrivateKeyPath(e.target.value)}
+          placeholder="~/.ssh/id_rsa"
+          className="mt-1"
+        />
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Credentials are stored in plain text in the app data folder
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="save-sftp"
+          checked={saveCredential}
+          onChange={(e) => setSaveCredential(e.target.checked)}
+          className="rounded"
+        />
+        <label htmlFor="save-sftp" className="text-xs text-muted-foreground">
+          Save server for future connections
+        </label>
+      </div>
+      <Button type="submit" className="w-full" disabled={!host || !username || connecting}>
+        {connecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+        Connect via SFTP
       </Button>
     </form>
   )

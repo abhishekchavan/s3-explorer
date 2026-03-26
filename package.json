@@ -36,6 +36,7 @@
     "@radix-ui/react-toast": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@tanstack/react-virtual": "^3.11.2",
+    "@types/ssh2-sftp-client": "^9.0.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-store": "^8.2.0",
@@ -44,6 +45,7 @@
     "mime-types": "^2.1.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "ssh2-sftp-client": "^12.1.1",
     "tailwind-merge": "^2.6.0",
     "uuid": "^11.0.3",
     "zustand": "^5.0.2"
