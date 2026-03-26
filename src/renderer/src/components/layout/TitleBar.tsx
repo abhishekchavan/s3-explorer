@@ -8,7 +8,7 @@ import { useTransferStore } from '../../stores/transfer.store'
 
 export function TitleBar(): JSX.Element {
   const { connected, connectionInfo } = useConnectionStore()
-  const { currentBucket } = useBrowserStore()
+  const { currentBucket, currentPrefix } = useBrowserStore()
   const { toggleConnectionDialog, togglePreview, showPreview } = useUiStore()
 
   return (
@@ -19,7 +19,7 @@ export function TitleBar(): JSX.Element {
       <div className="flex-1 text-center">
         {connected && connectionInfo ? (
           <span className="text-sm font-medium text-muted-foreground">
-            {connectionInfo.label} — {currentBucket || 'Select a bucket'}
+            {connectionInfo.label} — {connectionInfo.type === 'sftp' ? (currentPrefix || '/') : (currentBucket || 'Select a bucket')}
           </span>
         ) : (
           <span className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5">
