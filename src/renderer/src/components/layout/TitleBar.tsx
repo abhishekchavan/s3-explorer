@@ -1,4 +1,4 @@
-import { Plus, RefreshCw, Upload, Download, Trash2, Eye, Database } from 'lucide-react'
+import { Plus, RefreshCw, Upload, Download, Trash2, Eye, Rocket } from 'lucide-react'
 import { Button } from '../ui/button'
 import { ThemeToggle } from './ThemeToggle'
 import { useUiStore } from '../../stores/ui.store'
@@ -23,7 +23,7 @@ export function TitleBar(): JSX.Element {
           </span>
         ) : (
           <span className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5">
-            <Database className="h-3.5 w-3.5 text-primary" />
+            <Rocket className="h-3.5 w-3.5 text-primary" />
             <span>
               S3 <span className="text-primary">Browser Downloader</span>
             </span>
